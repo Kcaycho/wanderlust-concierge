@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import datetime
 import json
 import math
@@ -117,6 +118,85 @@ async def generate_destination_image(
         return public_url
     except Exception as e:
         return f"Error generating travel image: {e}"
+
+
+async def generate_destination_video(
+    prompt: str,
+    tool_context: ToolContext,
+) -> str:
+    """Generates a short travel video for a destination using gemini-omni-flash-preview in the global region, saves it as an artifact, and uploads it to public Cloud Storage.
+
+    Args:
+        prompt: Description of the travel destination video to generate (e.g. "Sunset over Senso-ji Temple in Tokyo").
+        tool_context: ADK tool execution context provided automatically by the framework.
+
+    Returns:
+        Public HTTPS URL of the uploaded video in Cloud Storage.
+    """
+    try:
+        client = genai.Client(vertexai=True, project=PROJECT_ID, location="global")
+        interaction = client.interactions.create(
+            model="gemini-omni-flash-preview",
+            input=f"Generate a short video of: {prompt}",
+        )
+
+        video_bytes = None
+        mime_type = "video/mp4"
+
+        if hasattr(interaction, "steps") and interaction.steps:
+            for step in interaction.steps:
+                if hasattr(step, "outputs") and step.outputs:
+                    for out in step.outputs:
+                        b = getattr(out, "bytes", None) or getattr(out, "data", None)
+                        if b:
+                            video_bytes = base64.b64decode(b) if isinstance(b, str) else b
+                            mime_type = getattr(out, "mime_type", "video/mp4") or "video/mp4"
+                            break
+                    if video_bytes:
+                        break
+
+        if not video_bytes:
+            dump = interaction.model_dump()
+            def find_bytes(d):
+                if isinstance(d, dict):
+                    if d.get("bytes"):
+                        b = d["bytes"]
+                        return base64.b64decode(b) if isinstance(b, str) else b, d.get("mime_type", "video/mp4") or "video/mp4"
+                    for v in d.values():
+                        res = find_bytes(v)
+                        if res:
+                            return res
+                elif isinstance(d, list):
+                    for item in d:
+                        res = find_bytes(item)
+                        if res:
+                            return res
+                return None
+
+            res = find_bytes(dump)
+            if res:
+                video_bytes, mime_type = res
+
+        if not video_bytes:
+            return "Error: Model did not return any video data."
+
+        filename = f"destination_video_{uuid.uuid4().hex[:8]}.mp4"
+
+        # 1. Save artifact to Playground's Artifacts panel (awaited)
+        artifact_part = types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
+        await tool_context.save_artifact(filename=filename, artifact=artifact_part)
+
+        # 2. Upload same video bytes directly to public Cloud Storage bucket
+        storage_client = storage.Client(project=PROJECT_ID)
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blob = bucket.blob(f"videos/{filename}")
+        blob.upload_from_string(video_bytes, content_type=mime_type)
+
+        public_url = f"https://storage.googleapis.com/{BUCKET_NAME}/videos/{filename}"
+        return public_url
+    except Exception as e:
+        return f"Error generating travel video: {e}"
+
 
 
 def geocode_address(address: str) -> dict:
@@ -472,6 +552,7 @@ root_agent = Agent(
     tools=[
         PreloadMemoryTool(),
         generate_destination_image,
+        generate_destination_video,
         geocode_address,
         find_nearby_places,
         search_destinations,
