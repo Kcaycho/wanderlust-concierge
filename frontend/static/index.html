@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wanderlust Concierge | AI Travel Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
+<style>
+  :root {
+    --accent: #0f766e;
+    --accent-hover: #0d9488;
+    --accent-light: #f0fdf4;
+    --bg: #f8fafc;
+    --border: #e2e8f0;
+    --card-bg: #ffffff;
+    --user-bg: linear-gradient(135deg, #0f766e 0%, #0284c7 100%);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Plus Jakarta Sans', system-ui, sans-serif; background:var(--bg); color:var(--text-main); display:flex; flex-direction:column; height:100vh; }
+  
+  /* Header styling */
+  header { background:linear-gradient(135deg, #0f766e 0%, #0284c7 100%); color:#fff; padding:.85rem 1.4rem; box-shadow:0 2px 10px rgba(15,118,110,0.18); }
+  .header-container { max-width:800px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; width:100%; }
+  .header-brand { display:flex; align-items:center; gap:.75rem; }
+  .brand-avatar { width:40px; height:40px; background:rgba(255,255,255,0.2); backdrop-filter:blur(6px); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; border:1px solid rgba(255,255,255,0.3); }
+  .brand-title { font-weight:700; font-size:1.15rem; letter-spacing:0.01em; }
+  .brand-subtitle { font-size:.8rem; opacity:0.92; font-weight:400; display:flex; align-items:center; gap:.35rem; margin-top:2px; }
+  .status-dot { width:7px; height:7px; background:#4ade80; border-radius:50%; display:inline-block; box-shadow:0 0 6px #4ade80; }
+
+  /* Main dialogue log */
+  #log { flex:1; overflow-y:auto; padding:1.2rem; max-width:800px; width:100%; margin:0 auto; }
+  
+  /* Welcome banner card */
+  .welcome-card { background:#ffffff; border:1px solid var(--border); border-radius:16px; padding:1.25rem 1.5rem; margin-bottom:1.2rem; box-shadow:0 2px 8px rgba(0,0,0,0.03); }
+  .welcome-badge { font-size:.78rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:.35rem; }
+  .welcome-title { font-size:1.2rem; font-weight:700; color:var(--text-main); margin-bottom:.35rem; }
+  .welcome-sub { font-size:.9rem; color:var(--text-muted); line-height:1.5; }
+
+  /* Message & Dialogue bubbles */
+  .msg { display:flex; align-items:flex-end; gap:.65rem; margin:1rem 0; animation:fadeIn 0.25s ease-out; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .msg.user { justify-content:flex-end; }
+  .msg.agent { justify-content:flex-start; }
+  .avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; box-shadow:0 2px 5px rgba(0,0,0,0.06); }
+  .msg.user .avatar { background:#0284c7; color:#fff; order:2; }
+  .msg.agent .avatar { background:var(--accent); color:#fff; order:1; }
+  .bubble { padding:.8rem 1.1rem; border-radius:18px; background:#ffffff; border:1px solid var(--border); color:var(--text-main); max-width:85%; line-height:1.5; font-size:.95rem; box-shadow:0 2px 6px rgba(0,0,0,0.02); word-break:break-word; white-space:pre-wrap; }
+  .msg.agent .bubble { order:2; border-bottom-left-radius:4px; }
+  .msg.user .bubble { order:1; background:var(--user-bg); color:#ffffff; border:none; border-bottom-right-radius:4px; box-shadow:0 3px 10px rgba(15,118,110,0.18); }
+  .bubble.rich { background:transparent; border:none; padding:0; box-shadow:none; max-width:100%; white-space:normal; }
+
+  /* Example Prompts Row */
+  .examples-row { display:flex; gap:.5rem; padding:.6rem 1.2rem 0; max-width:800px; width:100%; margin:0 auto; overflow-x:auto; scrollbar-width:none; }
+  .examples-row::-webkit-scrollbar { display:none; }
+  .chip { background:#ffffff; border:1px solid var(--border); border-radius:20px; padding:.45rem .95rem; font-size:.85rem; font-weight:500; color:#334155; cursor:pointer; white-space:nowrap; transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow:0 1px 3px rgba(0,0,0,0.03); }
+  .chip:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); transform:translateY(-1px); }
+
+  /* Input Form */
+  form { display:flex; gap:.6rem; padding:1rem 1.2rem; border-top:1px solid var(--border); background:#ffffff; max-width:800px; width:100%; margin:0 auto; border-radius:16px 16px 0 0; box-shadow:0 -4px 12px rgba(0,0,0,0.03); }
+  input { flex:1; padding:.8rem 1rem; border:1px solid var(--border); border-radius:12px; font-size:.95rem; font-family:inherit; outline:none; transition:border-color 0.2s, box-shadow 0.2s; }
+  input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(15,118,110,0.15); }
+  button.send-btn { padding:.8rem 1.3rem; border:none; border-radius:12px; background:var(--user-bg); color:#fff; font-weight:600; font-size:.95rem; cursor:pointer; transition:all 0.2s ease; display:flex; align-items:center; gap:.4rem; }
+  button.send-btn:hover { opacity:0.92; transform:translateY(-1px); }
+
+  /* --- A2UI component styles (Card, Column, Row, Text, Divider, List, Image, Icon) --- */
+  .a2card { border:1px solid var(--border); border-radius:14px; padding:1.1rem; background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,.04); max-width:100%; }
+  .a2card + .a2card, .a2col > .a2card { margin-top:.6rem; }
+  .a2col { display:flex; flex-direction:column; gap:.4rem; }
+  .a2row { display:flex; flex-direction:row; gap:.6rem; align-items:center; flex-wrap:wrap; }
+  .a2row.between { justify-content:space-between; }
+  .a2text { margin:0; line-height:1.45; }
+  .a2text.a2-h1 { font-size:1.5rem; font-weight:700; color:var(--text-main); }
+  .a2text.a2-h2 { font-size:1.25rem; font-weight:700; color:var(--text-main); }
+  .a2text.a2-h3 { font-size:1.1rem; font-weight:600; color:var(--text-main); }
+  .a2text.a2-h4 { font-size:1rem; font-weight:600; color:var(--text-main); }
+  .a2text.a2-caption { font-size:.85rem; color:var(--text-muted); }
+  .a2divider { border:none; border-top:1px solid var(--border); margin:.5rem 0; width:100%; }
+  .a2img { max-width:100%; border-radius:10px; display:block; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+  .material-symbols-outlined { font-family:'Material Symbols Outlined'; font-size:1.25rem; line-height:1; vertical-align:middle; color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-container">
+    <div class="header-brand">
+      <div class="brand-avatar">✈️</div>
+      <div>
+        <div class="brand-title">Wanderlust Concierge</div>
+        <div class="brand-subtitle"><span class="status-dot"></span> AI Travel Assistant</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div id="log">
+  <div class="welcome-card">
+    <div class="welcome-badge">🌴 Wanderlust Concierge</div>
+    <div class="welcome-title">Where are we exploring today?</div>
+    <div class="welcome-sub">Ask for personalized travel itineraries, live exchange rates, trip budget breakdowns, or destination photos!</div>
+  </div>
+</div>
+
+<div class="examples-row">
+  <button type="button" class="chip" onclick="sendPrompt('Plan a 3-day Paris itinerary with a budget breakdown')">🗼 Plan 3-day Paris itinerary & budget</button>
+  <button type="button" class="chip" onclick="sendPrompt('What are the live exchange rates for USD to JPY and EUR?')">💴 USD to JPY & EUR exchange rates</button>
+  <button type="button" class="chip" onclick="sendPrompt('Show me a postcard photo of Kyoto, Japan')">📸 Show postcard image of Kyoto</button>
+</div>
+
+<form id="form">
+  <input id="input" placeholder="Ask about destinations, weather, budgets, or travel recommendations…" autocomplete="off" autofocus>
+  <button class="send-btn">Send ➔</button>
+</form>
+
+<script>
+const log = document.getElementById("log");
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+
+function sendPrompt(text) {
+  input.value = text;
+  form.dispatchEvent(new Event("submit", { cancelable: true }));
+}
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+function bubble(who) {
+  const m = el("div", "msg " + who);
+  const avatar = el("div", "avatar", who === "user" ? "👤" : "✈️");
+  const b = el("div", "bubble");
+  m.appendChild(avatar);
+  m.appendChild(b);
+  log.appendChild(m);
+  log.scrollTop = log.scrollHeight;
+  return b;
+}
+
+/* ----------------------------------------------------------------------------
+ * A2UI mini-renderer (v0.8 Basic Catalog subset).
+ * Renders Card / Column / Row / Text / Divider / List / Image / Icon.
+ * Anything else falls back to plain text (see renderReply). All text goes in via
+ * textContent and image URLs are validated, so agent output can't inject HTML.
+ * -------------------------------------------------------------------------- */
+
+function boundStr(v) {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v.literalString === "string") return v.literalString;
+  return "";
+}
+
+function childIds(props) {
+  const ids = [];
+  if (props && typeof props.child === "string") ids.push(props.child);
+  const ch = props && props.children;
+  if (ch && Array.isArray(ch.explicitList)) for (const c of ch.explicitList) if (typeof c === "string") ids.push(c);
+  return ids;
+}
+
+function iconName(n) { return String(n || "").replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/\s+/g, "_").toLowerCase(); }
+
+function buildNode(id, comps, seen) {
+  if (!id || seen.has(id)) return null;
+  seen.add(id);
+  const c = comps[id];
+  if (!c) return null;
+  const p = c.properties || {};
+
+  if (c.component === "Card") {
+    const root = el("div", "a2card");
+    for (const cid of childIds(p)) {
+      const childEl = buildNode(cid, comps, seen);
+      if (childEl) root.appendChild(childEl);
+    }
+    return root;
+  }
+  if (c.component === "Column") {
+    const root = el("div", "a2col");
+    for (const cid of childIds(p)) {
+      const childEl = buildNode(cid, comps, seen);
+      if (childEl) root.appendChild(childEl);
+    }
+    return root;
+  }
+  if (c.component === "Row") {
+    const root = el("div", "a2row");
+    for (const cid of childIds(p)) {
+      const childEl = buildNode(cid, comps, seen);
+      if (childEl) root.appendChild(childEl);
+    }
+    return root;
+  }
+  if (c.component === "Text") {
+    const style = boundStr(p.usageHint).toLowerCase();
+    const cls = "a2text " + (style ? "a2-" + style : "a2-body");
+    return el("p", cls, boundStr(p.text));
+  }
+  if (c.component === "Divider") return el("hr", "a2divider");
+  if (c.component === "Image") {
+    const url = boundStr(p.url);
+    if (!/^https?:\/\//i.test(url)) return null;
+    const img = el("img", "a2img");
+    img.src = url;
+    img.alt = boundStr(p.altText) || "";
+    return img;
+  }
+  if (c.component === "Icon") {
+    const icon = iconName(boundStr(p.name));
+    return el("span", "material-symbols-outlined", icon);
+  }
+  if (c.component === "List") {
+    const root = el("div", "a2col");
+    for (const cid of childIds(p)) {
+      const childEl = buildNode(cid, comps, seen);
+      if (childEl) root.appendChild(childEl);
+    }
+    return root;
+  }
+  return null;
+}
+
+function renderA2uiMessage(container, data) {
+  const comps = {};
+  if (Array.isArray(data.components)) {
+    for (const c of data.components) if (c && c.id) comps[c.id] = c;
+  }
+  const rootEl = buildNode(data.rootId, comps, new Set());
+  if (rootEl) {
+    container.classList.add("rich");
+    container.appendChild(rootEl);
+    return true;
+  }
+  return false;
+}
+
+function renderReply(bubbleEl, parts) {
+  bubbleEl.textContent = "";
+  let renderedAny = false;
+  for (const p of parts) {
+    if (p.kind === "a2ui" && p.data) {
+      if (renderA2uiMessage(bubbleEl, p.data)) renderedAny = true;
+    } else if (p.kind === "text" && p.text) {
+      const para = el("p", "a2text", p.text);
+      para.style.margin = "0 0 .4rem 0";
+      para.style.whiteSpace = "pre-wrap";
+      bubbleEl.appendChild(para);
+      renderedAny = true;
+    }
+  }
+  if (!renderedAny) bubbleEl.textContent = "(no response)";
+  log.scrollTop = log.scrollHeight;
+}
+
+form.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  bubble("user").textContent = text;
+  input.value = "";
+  const b = bubble("agent"); b.textContent = "…";
+  try {
+    const res = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text }) });
+    const raw = await res.text();
+    let data;
+    try { data = JSON.parse(raw); }
+    catch { throw new Error(`Server returned non-JSON (HTTP ${res.status}). ${raw.slice(0, 300)}`); }
+    renderReply(b, data.parts || []);
+  } catch (e) {
+    b.textContent = "Error: " + e.message;
+  }
+});
+</script>
+</body>
+</html>
