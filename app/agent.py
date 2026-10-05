@@ -143,24 +143,23 @@ async def generate_destination_video(
         video_bytes = None
         mime_type = "video/mp4"
 
-        if hasattr(interaction, "steps") and interaction.steps:
-            for step in interaction.steps:
-                if hasattr(step, "outputs") and step.outputs:
-                    for out in step.outputs:
-                        b = getattr(out, "bytes", None) or getattr(out, "data", None)
-                        if b:
-                            video_bytes = base64.b64decode(b) if isinstance(b, str) else b
-                            mime_type = getattr(out, "mime_type", "video/mp4") or "video/mp4"
-                            break
-                    if video_bytes:
-                        break
+        out_vid = getattr(interaction, "output_video", None)
+        if out_vid:
+            d = getattr(out_vid, "data", None) or getattr(out_vid, "bytes", None)
+            if not d and hasattr(out_vid, "model_dump"):
+                dump = out_vid.model_dump()
+                d = dump.get("data") or dump.get("bytes")
+                if dump.get("mime_type"):
+                    mime_type = dump.get("mime_type")
+            if d:
+                video_bytes = base64.b64decode(d) if isinstance(d, str) else d
 
         if not video_bytes:
             dump = interaction.model_dump()
             def find_bytes(d):
                 if isinstance(d, dict):
-                    if d.get("bytes"):
-                        b = d["bytes"]
+                    if d.get("data") or d.get("bytes"):
+                        b = d.get("data") or d.get("bytes")
                         return base64.b64decode(b) if isinstance(b, str) else b, d.get("mime_type", "video/mp4") or "video/mp4"
                     for v in d.values():
                         res = find_bytes(v)
